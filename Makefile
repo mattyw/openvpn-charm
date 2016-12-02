@@ -1,4 +1,5 @@
 PROJECT_ROOT := $(shell cd ..; pwd)
+UNIT=openvpn/0
 
 all: build
 
@@ -14,11 +15,11 @@ deploy: build
 
 upgrade: build
 	juju upgrade-charm --path $(PROJECT_ROOT)/trusty/openvpn openvpn --force-units
-	juju resolved openvpn/0
+	juju resolved $(UNIT)
 
 client:
-	juju run --unit openvpn/0 "actions/client.sh"
-	juju scp openvpn/0:/home/ubuntu/client1.tgz ./
+	juju run --unit $(UNIT) "actions/client.sh clientb"
+	juju scp $(UNIT):/home/ubuntu/clientb/clientb.tgz ./
 
 
 .PHONY: all build clean deploy upgrade
