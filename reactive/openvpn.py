@@ -21,7 +21,6 @@ def install_openvpn():
     # Enable openvpn systemd service
     check_call([
         'sed', '-i', '-e', 's/#AUTOSTART="all"/AUTOSTART="all"/', '/etc/default/openvpn'])
-    check_call(['systemctl', 'daemon-reload'])
 
     # TODO: could open once we're ready to start the service
     # TODO: could make it configurable or support multiple ports to help clients bypass firewalls
@@ -51,8 +50,7 @@ def config():
             'loglevel': config.get('loglevel'),
         })
     if host.service_running('openvpn'):
-        host.service_stop('openvpn')
-    remove_state('openvpn.available')
+        host.service_restart('openvpn')
 
 
 @when('apt.installed.ufw', 'apt.installed.python3-netifaces')
@@ -108,6 +106,7 @@ def setup_easy_rsa():
 @when_not('openvpn.available')
 @when('openvpn.easy-rsa.ready', 'openvpn.ufw.ready', 'openvpn.installed')
 def start_openvpn():
+    check_call(['systemctl', 'daemon-reload'])
     if host.service_running('openvpn'):
         host.service_restart('openvpn')
     else:
