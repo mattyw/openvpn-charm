@@ -1,25 +1,26 @@
-PROJECT_ROOT := $(shell cd ..; pwd)
-UNIT=openvpn/0
+UNIT=openvpn/0  # TODO: get actual unit with juju status & jq
 
+.PHONY: all
 all: build
 
+.PHONY: build
 build:
-	JUJU_REPOSITORY=$(PROJECT_ROOT) charm build -l debug
+	charm build -l debug
 
-
+.PHONY: clean
 clean:
-	$(RM) -r $(PROJECT_ROOT)/trusty/openvpn
+	$(RM) -r builds deps
 
+.PHONY: deploy
 deploy: build
-	juju deploy $(PROJECT_ROOT)/trusty/openvpn openvpn --series trusty
+	juju deploy $(shell pwd)/builds/openvpn openvpn
 
+.PHONY: upgrade
 upgrade: build
-	juju upgrade-charm --path $(PROJECT_ROOT)/trusty/openvpn openvpn --force-units
+	juju upgrade-charm --path $(shell pwd)/builds/openvpn openvpn --force-units
 	juju resolved $(UNIT)
 
+.PHONY: client
 client:
 	juju run --unit $(UNIT) "actions/client.sh clientb"
 	juju scp $(UNIT):/home/ubuntu/clientb/clientb.tgz ./
-
-
-.PHONY: all build clean deploy upgrade

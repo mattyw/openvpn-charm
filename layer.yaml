@@ -1,1 +1,14 @@
-includes: ['layer:basic']  # if you use any interfaces, add them here
+includes:
+    - layer:basic
+    - layer:apt
+options:
+    apt:
+        packages:
+            - easy-rsa
+            - openvpn
+            - python3-netifaces
+            - ufw
+ignore:
+    - builds    
+    - deps
+    - .*.swp
