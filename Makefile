@@ -1,5 +1,9 @@
-UNIT := openvpn/0  # TODO: get actual unit with juju status & jq
-CLIENT := $(shell hostname)
+ifndef UNIT
+	UNIT := `juju status --format json | jq -r '.applications["openvpn"].units|keys|.[]' | head -1`
+endif
+ifndef CLIENT
+	CLIENT := $(shell hostname)
+endif
 
 .PHONY: all
 all: build
