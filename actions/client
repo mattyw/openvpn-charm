@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+
+import os
+import random
+import string
+import sys
+from subprocess import check_call, check_output
+
+from charmhelpers.core import hookenv
+from charmhelpers.core.templating import render
+
+
+def client_ovpn(name=None):
+    if name is None:
+        name = "client-" + ''.join(random.choice(string.ascii_letters + string.digits) for i in range(12))
+    if not client_exists(name):
+        create_client(name)
+    return render_client_ovpn(name)
+ 
+
+def client_exists(name):
+    return os.path.exists('/etc/openvpn/easy-rsa/keys/%s.key' % (name))
+
+
+def create_client(name):
+    check_call(['bash', '-c', "cd /etc/openvpn/easy-rsa && source vars && ./build-key --batch %s" % (name)])
+
+
+def render_client_ovpn(name):
+    with open('/etc/openvpn/ca.crt', 'r') as f:
+        ca_cert = f.read()
+    client_cert = check_output([
+        'openssl', 'x509', '-outform', 'PEM', '-in', '/etc/openvpn/easy-rsa/keys/%s.crt' % (name)],
+        universal_newlines=True)
+    with open('/etc/openvpn/easy-rsa/keys/%s.key' % (name), 'r') as f:
+        client_key = f.read()
+    return render(
+        source='client.conf',
+        target=None,
+        context={
+            'public_addr': hookenv.unit_public_ip(),
+            'ca': ca_cert,
+            'cert': client_cert,
+            'key': client_key,
+        })
+
+
+if __name__ == '__main__':
+    name = sys.argv[1:] and sys.argv[1] or None
+    print(client_ovpn(name))
