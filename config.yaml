@@ -1,0 +1,19 @@
+options:
+  subnet:
+    type: string
+    description: Subnet allocated to the VPN. Should not collide with existing networks.
+    default: 10.8.0.0/16
+  dns-servers:
+    type: string
+    description: Space-delimited list of DNS servers that VPN clients will use.
+    # Defaults to OpenDNS
+    default: 208.67.222.222 208.67.220.220
+  loglevel:
+    type: int
+    description: |
+        0 is silent, except for fatal errors
+        4 is reasonable for general usage
+        5 and 6 can help to debug connection problems
+        9 is extremely verbose
+
+    default: 0
