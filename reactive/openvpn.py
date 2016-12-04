@@ -30,20 +30,21 @@ def install_openvpn():
     set_state('openvpn.installed')
 
 
-@when('config.changed')
+@when('config.changed', 'apt.installed.python3-netifaces')
 def config():
     config = hookenv.config()
     if config.changed('subnet'):
         # Change in subnet requires ufw reconfiguration
         remove_state('openvpn.ufw.ready')
     ip = ipaddress.ip_network(config.get('subnet'))
+    _, addr = resolve_iface()
     render(
         source='server.conf',
         target='/etc/openvpn/server.conf',
         owner='root',
         perms=0o644,
         context={
-            'public_addr': hookenv.unit_public_ip(),
+            'local_addr': addr,
             'network': ip.network_address,
             'netmask': ip.netmask,
             'dns_servers': config.get('dns-servers').split(' '),
@@ -67,7 +68,7 @@ def setup_ufw():
     with open('/etc/ufw/before.rules', 'w') as f:
         f.write(rules)
 
-    iface = resolve_iface()
+    iface, _ = resolve_iface()
 
     check_call([
         'sed', '-i', '-e', 's/DEFAULT_FORWARD_POLICY="DROP"/DEFAULT_FORWARD_POLICY="ACCEPT"/', '/etc/default/ufw'])
@@ -87,12 +88,13 @@ def resolve_iface():
     """resolve_iface returns the network interface name (like eth0)
     for the unit's public IP address."""
     import netifaces
-    addr = hookenv.unit_public_ip()
-    for iface in netifaces.interfaces():
-        for item in netifaces.ifaddresses(iface).get(netifaces.AF_INET, []):
-            if item.get('addr') == addr:
-                return iface
-    hookenv.status_set('error', 'unrecognized network interface')
+    try_addrs = [hookenv.unit_public_ip(), hookenv.unit_private_ip()]
+    for addr in try_addrs:
+        for iface in netifaces.interfaces():
+            for item in netifaces.ifaddresses(iface).get(netifaces.AF_INET, []):
+                if item.get('addr') == addr:
+                    return iface, addr
+    hookenv.status_set('blocked', 'unrecognized network interface')
     raise Exception('unrecognized network interface')
 
 
